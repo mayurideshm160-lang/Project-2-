@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive README Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom Scrollbar for modern browsers */
+        .scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Stylized Rendered Markdown Styling (Simulates Github Preview) */
+        #screen-preview h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            color: #0f172a;
+        }
+        #screen-preview h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 0.375rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: #1e293b;
+        }
+        #screen-preview h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #334155;
+        }
+        #screen-preview p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+            color: #475569;
+        }
+        #screen-preview ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+            color: #475569;
+        }
+        #screen-preview li {
+            margin-bottom: 0.375rem;
+        }
+        #screen-preview pre {
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1.25rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875rem;
+        }
+        #screen-preview code {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875rem;
+        }
+        #screen-preview pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            border-radius: 0;
+            font-size: inherit;
+        }
+        #screen-preview blockquote {
+            border-left: 4px solid #cbd5e1;
+            padding-left: 1rem;
+            font-style: italic;
+            color: #64748b;
+            margin-bottom: 1rem;
+        }
+        #screen-preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.25rem;
+        }
+        #screen-preview th, #screen-preview td {
+            border: 1px solid #e2e8f0;
+            padding: 0.625rem 1rem;
+            text-align: left;
+        }
+        #screen-preview th {
+            background-color: #f8fafc;
+            font-weight: 600;
+        }
+
+        /* Animation class for transitioning */
+        .section-body {
+            transition: all 0.3s ease-in-out;
+        }
+        .section-card.collapsed .section-body {
+            display: none !important;
+        }
+        .section-card.collapsed .fa-chevron-down {
+            transform: rotate(-90deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- Header Section -->
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-indigo-700 p-2.5 rounded-lg shadow-md">
+                    <i class="fa-solid fa-file-pen text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Interactive README Generator</h1>
+                    <p class="text-sm text-indigo-100 font-medium">Create beautiful, professional READMEs for your GitHub projects interactively!</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button id="btn-reset" class="bg-indigo-850 hover:bg-indigo-900 text-white font-semibold px-4 py-2 rounded-lg border border-indigo-500/30 transition shadow-sm bg-indigo-950">
+                    <i class="fa-solid fa-rotate-left mr-2"></i>Reset Fields
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Forms & Controls (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col space-y-6">
+
+            <!-- Quick Template Selector -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold text-slate-900 mb-3 flex items-center">
+                    <i class="fa-solid fa-wand-magic-sparkles text-indigo-500 mr-2.5"></i>Quick Templates
+                </h2>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <button class="template-btn p-3 text-center border-2 border-indigo-600 bg-indigo-50/50 rounded-lg text-sm font-semibold text-indigo-700 hover:bg-indigo-50 transition active" data-template="standard">
+                        Standard
+                    </button>
+                    <button class="template-btn p-3 text-center border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition" data-template="minimal">
+                        Minimal
+                    </button>
+                    <button class="template-btn p-3 text-center border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition" data-template="full">
+                        Full Stack
+                    </button>
+                    <button class="template-btn p-3 text-center border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition" data-template="profile">
+                        Profile
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Sections Accordion / Forms -->
+            <div class="space-y-4" id="sections-container">
+
+                <!-- Title & Description Section -->
+                <div class="section-card bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" data-section="header">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none header-toggle">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="chk-header" class="section-checkbox h-4.5 w-4.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                            <label for="chk-header" class="text-base font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-heading text-slate-400"></i> Project Title & Tagline
+                            </label>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                    <div class="p-5 space-y-4 section-body">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Project Title</label>
+                            <input type="text" id="input-title" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="My Awesome Project">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tagline / Subtitle</label>
+                            <input type="text" id="input-tagline" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="A short description of what this project does and why it's useful.">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Long Description</label>
+                            <textarea id="input-description" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="Provide a detailed overview of your project, the problems it solves, and its target audience."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Badges Section -->
+                <div class="section-card bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" data-section="badges">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none header-toggle">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="chk-badges" class="section-checkbox h-4.5 w-4.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                            <label for="chk-badges" class="text-base font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-ribbon text-slate-400"></i> Shields & Badges
+                            </label>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                    <div class="p-5 space-y-4 section-body">
+                        <p class="text-xs text-slate-500">Select standard badges to display at the top of your README file.</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex items-center p-2.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100/50 transition">
+                                <input type="checkbox" id="badge-license" class="badge-opt h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                                <span class="ml-2.5 text-sm font-semibold text-slate-700">License Badge</span>
+                            </label>
+                            <label class="flex items-center p-2.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100/50 transition">
+                                <input type="checkbox" id="badge-version" class="badge-opt h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                                <span class="ml-2.5 text-sm font-semibold text-slate-700">Version Badge</span>
+                            </label>
+                            <label class="flex items-center p-2.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100/50 transition">
+                                <input type="checkbox" id="badge-issues" class="badge-opt h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                                <span class="ml-2.5 text-sm font-semibold text-slate-700">Open Issues</span>
+                            </label>
+                            <label class="flex items-center p-2.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100/50 transition">
+                                <input type="checkbox" id="badge-prs" class="badge-opt h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                                <span class="ml-2.5 text-sm font-semibold text-slate-700">Pull Requests</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features Section -->
+                <div class="section-card bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" data-section="features">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none header-toggle">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="chk-features" class="section-checkbox h-4.5 w-4.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                            <label for="chk-features" class="text-base font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-star text-slate-400"></i> Features
+                            </label>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                    <div class="p-5 space-y-4 section-body">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Feature List (one per line)</label>
+                            <textarea id="input-features" rows="4" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="⚡ High-performance and responsive design&#10;🛠️ Easy customization with modular components&#10;🔒 Built-in security best practices&#10;📊 Comprehensive real-time preview dashboard"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tech Stack Section -->
+                <div class="section-card bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" data-section="techstack">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none header-toggle">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="chk-techstack" class="section-checkbox h-4.5 w-4.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                            <label for="chk-techstack" class="text-base font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-laptop-code text-slate-400"></i> Tech Stack & Tools
+                            </label>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                    <div class="p-5 space-y-4 section-body">
+                        <p class="text-xs text-slate-500">Quick-add popular technologies:</p>
+                        <div class="flex flex-wrap gap-2" id="tech-tags-container">
+                            <!-- Predefined tech tag buttons dynamically added -->
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Custom Tech List (comma separated)</label>
+                            <input type="text" id="input-techstack" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="React, Python, Node.js, TailwindCSS">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Installation & Setup Section -->
+                <div class="section-card bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" data-section="installation">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none header-toggle">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="chk-installation" class="section-checkbox h-4.5 w-4.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                            <label for="chk-installation" class="text-base font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-download text-slate-400"></i> Installation & Getting Started
+                            </label>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                    <div class="p-5 space-y-4 section-body">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Prerequisites</label>
+                            <input type="text" id="input-prerequisites" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="Node.js (v18+) or Python (v3.9+)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Installation Steps</label>
+                            <textarea id="input-install-steps" rows="4" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="1. Clone the repository:&#10;```bash&#10;git clone https://github.com/user/repo.git&#10;```&#10;2. Install dependencies:&#10;```bash&#10;npm install&#10;```"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usage Section -->
+                <div class="section-card bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" data-section="usage">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none header-toggle">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="chk-usage" class="section-checkbox h-4.5 w-4.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                            <label for="chk-usage" class="text-base font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-circle-play text-slate-400"></i> Usage Instructions
+                            </label>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                    <div class="p-5 space-y-4 section-body">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Usage Example / Code Block</label>
+                            <textarea id="input-usage" rows="4" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="To start the application, run:&#10;```bash&#10;npm start&#10;```&#10;Open `http://localhost:3000` in your browser."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contributing Section -->
+                <div class="section-card bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" data-section="contributing">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none header-toggle">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="chk-contributing" class="section-checkbox h-4.5 w-4.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                            <label for="chk-contributing" class="text-base font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-users-gear text-slate-400"></i> Contributing Guide
+                            </label>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                    <div class="p-5 space-y-4 section-body">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Contributing details</label>
+                            <textarea id="input-contributing" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="Contributions are welcome! Please fork the repository, make changes, and open a Pull Request. For major changes, please open an issue first."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- License Section -->
+                <div class="section-card bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" data-section="license">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none header-toggle">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="chk-license" class="section-checkbox h-4.5 w-4.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                            <label for="chk-license" class="text-base font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-scale-balanced text-slate-400"></i> License
+                            </label>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                    <div class="p-5 space-y-4 section-body">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">License Type</label>
+                                <select id="select-license" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition">
+                                    <option value="MIT">MIT License</option>
+                                    <option value="Apache-2.0">Apache 2.0 License</option>
+                                    <option value="GPL-3.0">GPL v3 License</option>
+                                    <option value="BSD-3-Clause">BSD 3-Clause</option>
+                                    <option value="Unlicense">Unlicense</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Copyright Holder</label>
+                                <input type="text" id="input-license-holder" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="John Doe">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact & Author Section -->
+                <div class="section-card bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" data-section="contact">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none header-toggle">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="chk-contact" class="section-checkbox h-4.5 w-4.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" checked>
+                            <label for="chk-contact" class="text-base font-bold text-slate-800 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-address-book text-slate-400"></i> Contact & Author Info
+                            </label>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                    <div class="p-5 space-y-4 section-body">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Author Name</label>
+                                <input type="text" id="input-author" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="John Doe">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">GitHub Username</label>
+                                <input type="text" id="input-github" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="johndoe">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email Address</label>
+                                <input type="email" id="input-email" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="john.doe@example.com">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Twitter / X Username</label>
+                                <input type="text" id="input-twitter" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" placeholder="johndoe_dev">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Right Column: Live Preview & Output (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col space-y-4 h-[calc(100vh-120px)] lg:sticky lg:top-6">
+
+            <!-- Tab Controls & Quick Actions -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-3 flex justify-between items-center flex-wrap gap-2.5">
+                <div class="flex space-x-1.5 bg-slate-100 p-1.5 rounded-lg">
+                    <button id="tab-btn-preview" class="tab-btn active px-3.5 py-1.5 text-xs font-bold rounded-md text-slate-700 bg-white shadow-sm transition">
+                        <i class="fa-solid fa-eye mr-1.5 text-indigo-500"></i>Visual Preview
+                    </button>
+                    <button id="tab-btn-raw" class="tab-btn px-3.5 py-1.5 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition">
+                        <i class="fa-solid fa-code mr-1.5"></i>Raw Markdown
+                    </button>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="btn-copy" class="action-btn px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition shadow-sm flex items-center">
+                        <i class="fa-solid fa-copy mr-1.5"></i>Copy
+                    </button>
+                    <button id="btn-download" class="action-btn px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition shadow-sm flex items-center">
+                        <i class="fa-solid fa-download mr-1.5"></i>Download
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Screens -->
+            <div class="flex-grow bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative min-h-[300px]">
+
+                <!-- Screen 1: Visual Rendered Preview -->
+                <div id="screen-preview" class="flex-grow p-6 overflow-y-auto prose prose-slate max-w-none scrollbar">
+                    <!-- Dynamic Rendered Markdown Content -->
+                </div>
+
+                <!-- Screen 2: Raw Markdown Source -->
+                <div id="screen-raw" class="hidden flex-grow flex flex-col">
+                    <textarea id="output-markdown" readonly class="w-full flex-grow p-5 font-mono text-xs bg-slate-900 text-slate-100 outline-none resize-none border-none leading-relaxed"></textarea>
+                </div>
+
+                <!-- Copied Toast Notification -->
+                <div id="toast-message" class="absolute bottom-4 right-4 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-xl flex items-center space-x-2 opacity-0 transform translate-y-2 pointer-events-none transition-all duration-300">
+                    <i class="fa-solid fa-check-circle text-emerald-400 text-sm"></i>
+                    <span>Markdown copied to clipboard!</span>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-4 text-center border-t border-slate-800">
+        <p>&copy; 2026 Interactive README Generator. Built with <i class="fa-solid fa-heart text-rose-500 mx-1"></i> for developers.</p>
+    </footer>
+
+    <script>
+        // Tech stack items mapping
+        const POPULAR_TECHS = [
+            { name: "React", badge: "React-20232a?style=for-the-badge&logo=react" },
+            { name: "Vue", badge: "Vue.js-35495e?style=for-the-badge&logo=vuedotjs" },
+            { name: "Svelte", badge: "Svelte-ff3e00?style=for-the-badge&logo=svelte" },
+            { name: "Node.js", badge: "Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" },
+            { name: "Python", badge: "Python-3776ab?style=for-the-badge&logo=python&logoColor=white" },
+            { name: "TypeScript", badge: "TypeScript-007acc?style=for-the-badge&logo=typescript&logoColor=white" },
+            { name: "TailwindCSS", badge: "Tailwind_CSS-38bdf8?style=for-the-badge&logo=tailwind-css&logoColor=white" },
+            { name: "Docker", badge: "Docker-2496ed?style=for-the-badge&logo=docker&logoColor=white" },
+            { name: "PostgreSQL", badge: "PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" },
+            { name: "MongoDB", badge: "MongoDB-4ea94b?style=for-the-badge&logo=mongodb&logoColor=white" }
+        ];
+
+        // Template Predefined Data
+        const TEMPLATE_DATA = {
+            standard: {
+                title: "My Awesome App",
+                tagline: "A next-generation productive framework for developer happiness.",
+                description: "This project provides a robust solution to simplify and optimize modern application development. Built with performance, modularity, and responsiveness in mind, it empowers teams to construct scalable services with ease.",
+                badges: ["license", "version", "issues"],
+                features: "⚡ Ultra-fast real-time rendering engine\n🛠️ Fully customizable layouts and templates\n🔒 Built-in authentication and safety systems\n📊 Thoroughly tested and documented APIs",
+                techstack: "React, Node.js, TypeScript, TailwindCSS",
+                prerequisites: "Node.js (v18+) and npm (v9+)",
+                installSteps: "1. Clone the repository:\n```bash\ngit clone https://github.com/username/my-awesome-app.git\n```\n2. Install dependencies:\n```bash\ncd my-awesome-app\nnpm install\n```",
+                usage: "To start the development server on `http://localhost:5000`:\n```bash\nnpm run dev\n```\nTo build for production:\n```bash\nnpm run build\n```",
+                contributing: "We love contributions! Please read our contributing guide, fork the project, commit your updates, and create a pull request.",
+                license: "MIT",
+                licenseHolder: "Developer Team",
+                author: "Dev Lead",
+                github: "awesome-devs",
+                email: "support@awesomeapp.io",
+                twitter: "awesome_app_dev"
+            },
+            minimal: {
+                title: "Quick-Utils",
+                tagline: "Super lightweight utility helper functions for basic string operations.",
+                description: "A single-file helper library containing fast string manipulations like slugify, camelCase, and capitalize with zero external dependencies.",
+                badges: ["license", "version"],
+                features: "📦 Zero external dependencies\n💾 Extremely lightweight (< 1kb gzipped)\n🚀 Tree-shakable modular functions",
+                techstack: "TypeScript",
+                prerequisites: "Node.js (v16+)",
+                installSteps: "Install via npm:\n```bash\nnpm install quick-utils-str\n```",
+                usage: "```typescript\nimport { slugify } from 'quick-utils-str';\nconsole.log(slugify('Hello World!')); // hello-world\n```",
+                contributing: "Open an issue or submit a pull request if you want to add more helpers.",
+                license: "Unlicense",
+                licenseHolder: "Public Domain",
+                author: "Jane Smith",
+                github: "janesmith",
+                email: "jane.smith@example.com",
+                twitter: "janesmith_codes"
+            },
+            full: {
+                title: "Enterprise SaaS Portal",
+                tagline: "A comprehensive fully-featured backend/frontend SaaS platform with payment gateway integration.",
+                description: "A Production-grade boilerplate designed for large SaaS applications. Ships pre-integrated with database adapters, full test-coverage, user subscriptions, and a clean admin control board.",
+                badges: ["license", "version", "issues", "prs"],
+                features: "💳 Pre-integrated Stripe payments and invoices\n🛡️ JWT & Multi-factor authentication\n📈 Rich user dashboard and analytics tools\n📧 Automated mail delivery templates",
+                techstack: "React, Node.js, Python, PostgreSQL, Docker",
+                prerequisites: "Docker, Python (v3.10+), and Node.js (v20+)",
+                installSteps: "1. Clone repository & configure env:\n```bash\ngit clone https://github.com/saas-corp/portal.git\ncp .env.example .env\n```\n2. Run orchestration:\n```bash\ndocker-compose up -d --build\n```",
+                usage: "Access client interface on `http://localhost:3000`.\nBackend Swagger docs are available at `http://localhost:8000/docs`.",
+                contributing: "Review internal architecture documentation before raising a Pull Request. Coding standards are strictly enforced.",
+                license: "Apache-2.0",
+                licenseHolder: "SaaS Corporation",
+                author: "SaaS Dev Core",
+                github: "saas-corp",
+                email: "engineering@saascorp.com",
+                twitter: "saas_corp_tech"
+            },
+            profile: {
+                title: "Hi there, I'm Alex! 👋",
+                tagline: "Full-Stack Software Engineer & Open Source Advocate.",
+                description: "Passionate builder creating performant developer tools, writing technical blogs, and contributing to core libraries. Actively looking for collaborative remote roles in platform engineering.",
+                badges: ["version"],
+                features: "🌱 Currently exploring Rust, WebAssembly, and Cloud Architecture\n✍️ Regular contributor to Dev.to and Medium\n💬 Ask me about UI Design, React Hooks, or Database Normalization",
+                techstack: "React, Vue, Node.js, PostgreSQL, TypeScript",
+                prerequisites: "",
+                installSteps: "Feel free to check out my open-source projects or read my blog posts!",
+                usage: "Check out my repositories below, starring the ones you like!",
+                contributing: "Always open to collaborating on interesting side projects or open-source initiatives. Let's build something awesome!",
+                license: "MIT",
+                licenseHolder: "Alex",
+                author: "Alex Developer",
+                github: "alex-codes-all",
+                email: "alex@developer.net",
+                twitter: "alex_dev_web"
+            }
+        };
+
+        // DOM elements
+        const elements = {
+            btnReset: document.getElementById('btn-reset'),
+            templateBtns: document.querySelectorAll('.template-btn'),
+            sectionsContainer: document.getElementById('sections-container'),
+
+            // Inputs
+            inputTitle: document.getElementById('input-title'),
+            inputTagline: document.getElementById('input-tagline'),
+            inputDescription: document.getElementById('input-description'),
+            badgeLicense: document.getElementById('badge-license'),
+            badgeVersion: document.getElementById('badge-version'),
+            badgeIssues: document.getElementById('badge-issues'),
+            badgePrs: document.getElementById('badge-prs'),
+            inputFeatures: document.getElementById('input-features'),
+            techTagsContainer: document.getElementById('tech-tags-container'),
+            inputTechstack: document.getElementById('input-techstack'),
+            inputPrerequisites: document.getElementById('input-prerequisites'),
+            inputInstallSteps: document.getElementById('input-install-steps'),
+            inputUsage: document.getElementById('input-usage'),
+            inputContributing: document.getElementById('input-contributing'),
+            selectLicense: document.getElementById('select-license'),
+            inputLicenseHolder: document.getElementById('input-license-holder'),
+            inputAuthor: document.getElementById('input-author'),
+            inputGithub: document.getElementById('input-github'),
+            inputEmail: document.getElementById('input-email'),
+            inputTwitter: document.getElementById('input-twitter'),
+
+            // Section Checkboxes
+            chkHeader: document.getElementById('chk-header'),
+            chkBadges: document.getElementById('chk-badges'),
+            chkFeatures: document.getElementById('chk-features'),
+            chkTechstack: document.getElementById('chk-techstack'),
+            chkInstallation: document.getElementById('chk-installation'),
+            chkUsage: document.getElementById('chk-usage'),
+            chkContributing: document.getElementById('chk-contributing'),
+            chkLicense: document.getElementById('chk-license'),
+            chkContact: document.getElementById('chk-contact'),
+
+            // Tabs & Preview
+            tabBtnPreview: document.getElementById('tab-btn-preview'),
+            tabBtnRaw: document.getElementById('tab-btn-raw'),
+            screenPreview: document.getElementById('screen-preview'),
+            screenRaw: document.getElementById('screen-raw'),
+            outputMarkdown: document.getElementById('output-markdown'),
+            btnCopy: document.getElementById('btn-copy'),
+            btnDownload: document.getElementById('btn-download'),
+            toastMessage: document.getElementById('toast-message')
+        };
+
+        // State to keep track of selected technologies
+        let selectedTechs = [];
+
+        // Initialize popular tech buttons
+        function renderTechButtons() {
+            elements.techTagsContainer.innerHTML = "";
+            POPULAR_TECHS.forEach(tech => {
+                const btn = document.createElement('button');
+                btn.type = "button";
+                btn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition flex items-center space-x-1 bg-white";
+                btn.innerHTML = `<span>${tech.name}</span>`;
+                btn.addEventListener('click', () => toggleTech(tech.name));
+                elements.techTagsContainer.appendChild(btn);
+            });
+        }
+
+        function toggleTech(name) {
+            let currentList = elements.inputTechstack.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            const index = currentList.findIndex(t => t.toLowerCase() === name.toLowerCase());
+
+            if (index > -1) {
+                currentList.splice(index, 1);
+            } else {
+                currentList.push(name);
+            }
+            elements.inputTechstack.value = currentList.join(', ');
+            updateMarkdown();
+        }
+
+        // Toggle sections accordion
+        function setupAccordion() {
+            document.querySelectorAll('.header-toggle').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    // Ignore clicks on checkbox itself to let checkbox change handle it
+                    if (e.target.tagName.toLowerCase() === 'input') return;
+
+                    const card = header.closest('.section-card');
+                    card.classList.toggle('collapsed');
+                });
+            });
+        }
+
+        // Generate Markdown from form fields
+        function compileMarkdown() {
+            let md = "";
+
+            // Header Section
+            if (elements.chkHeader.checked) {
+                const title = elements.inputTitle.value || elements.inputTitle.placeholder;
+                const tagline = elements.inputTagline.value || elements.inputTagline.placeholder;
+                const description = elements.inputDescription.value || elements.inputDescription.placeholder;
+
+                md += `# ${title}\n\n`;
+                md += `> ${tagline}\n\n`;
+                md += `${description}\n\n`;
+            }
+
+            // Badges Section
+            if (elements.chkBadges.checked) {
+                const github = elements.inputGithub.value || "username";
+                const repo = (elements.inputTitle.value || "repository").toLowerCase().replace(/\s+/g, '-');
+                const license = elements.selectLicense.value;
+
+                let badgesMd = "";
+                if (elements.badgeLicense.checked) {
+                    badgesMd += `![License](https://img.shields.io/github/license/${github}/${repo}?color=blue&style=flat-square) `;
+                }
+                if (elements.badgeVersion.checked) {
+                    badgesMd += `![Version](https://img.shields.io/github/v/release/${github}/${repo}?color=green&style=flat-square) `;
+                }
+                if (elements.badgeIssues.checked) {
+                    badgesMd += `![Issues](https://img.shields.io/github/issues/${github}/${repo}?color=red&style=flat-square) `;
+                }
+                if (elements.badgePrs.checked) {
+                    badgesMd += `![PRs](https://img.shields.io/github/issues-pr/${github}/${repo}?color=orange&style=flat-square) `;
+                }
+
+                if (badgesMd.trim().length > 0) {
+                    md += `${badgesMd.trim()}\n\n`;
+                }
+            }
+
+            // Tech Stack
+            if (elements.chkTechstack.checked) {
+                const techString = elements.inputTechstack.value;
+                if (techString.trim().length > 0) {
+                    md += `## 🛠️ Built With\n\n`;
+                    const techs = techString.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+                    // Render tech stack badges using shields.io if available in POPULAR_TECHS
+                    let badges = [];
+                    let otherTechs = [];
+                    techs.forEach(t => {
+                        const matched = POPULAR_TECHS.find(p => p.name.toLowerCase() === t.toLowerCase());
+                        if (matched) {
+                            badges.push(`![${matched.name}](https://img.shields.io/badge/${matched.badge})`);
+                        } else {
+                            otherTechs.push(t);
+                        }
+                    });
+
+                    if (badges.length > 0) {
+                        md += `${badges.join(' ')}\n\n`;
+                    }
+                    if (otherTechs.length > 0) {
+                        md += `Additionally supports: ${otherTechs.map(t => `**${t}**`).join(', ')}\n\n`;
+                    }
+                }
+            }
+
+            // Features Section
+            if (elements.chkFeatures.checked) {
+                const featuresVal = elements.inputFeatures.value || elements.inputFeatures.placeholder;
+                if (featuresVal.trim().length > 0) {
+                    md += `## ✨ Key Features\n\n`;
+                    const list = featuresVal.split('\n').filter(l => l.trim().length > 0);
+                    list.forEach(item => {
+                        if (item.trim().startsWith('-') || item.trim().startsWith('*')) {
+                            md += `${item}\n`;
+                        } else {
+                            md += `- ${item}\n`;
+                        }
+                    });
+                    md += `\n`;
+                }
+            }
+
+            // Installation Section
+            if (elements.chkInstallation.checked) {
+                const prereq = elements.inputPrerequisites.value;
+                const steps = elements.inputInstallSteps.value || elements.inputInstallSteps.placeholder;
+
+                md += `## 🚀 Getting Started\n\n`;
+                if (prereq.trim().length > 0) {
+                    md += `### Prerequisites\n- ${prereq}\n\n`;
+                }
+                md += `### Installation\n\n${steps}\n\n`;
+            }
+
+            // Usage Section
+            if (elements.chkUsage.checked) {
+                const usage = elements.inputUsage.value || elements.inputUsage.placeholder;
+                md += `## 💡 Usage\n\n${usage}\n\n`;
+            }
+
+            // Contributing Section
+            if (elements.chkContributing.checked) {
+                const contrib = elements.inputContributing.value || elements.inputContributing.placeholder;
+                md += `## 🤝 Contributing\n\n${contrib}\n\n`;
+            }
+
+            // License Section
+            if (elements.chkLicense.checked) {
+                const licenseType = elements.selectLicense.value;
+                const holder = elements.inputLicenseHolder.value || elements.inputLicenseHolder.placeholder;
+                md += `## 📄 License\n\n`;
+                md += `This project is licensed under the **${licenseType}** - see the [LICENSE](LICENSE) file for details.  \n`;
+                md += `&copy; ${new Date().getFullYear()} ${holder}\n\n`;
+            }
+
+            // Contact & Author Section
+            if (elements.chkContact.checked) {
+                const author = elements.inputAuthor.value || elements.inputAuthor.placeholder;
+                const email = elements.inputEmail.value || elements.inputEmail.placeholder;
+                const github = elements.inputGithub.value || elements.inputGithub.placeholder;
+                const twitter = elements.inputTwitter.value || elements.inputTwitter.placeholder;
+
+                md += `## 📬 Contact & Support\n\n`;
+                md += `Created by **${author}** - feel free to reach out!\n\n`;
+                md += `- GitHub: [@${github}](https://github.com/${github})\n`;
+                md += `- Email: [${email}](mailto:${email})\n`;
+                md += `- Twitter/X: [@${twitter}](https://twitter.com/${twitter})\n\n`;
+            }
+
+            return md.trim() + "\n";
+        }
+
+        // Update visual render and raw markdown source
+        function updateMarkdown() {
+            const md = compileMarkdown();
+            elements.outputMarkdown.value = md;
+            elements.screenPreview.innerHTML = marked.parse(md);
+        }
+
+        // Apply template data
+        function loadTemplate(templateKey) {
+            const data = TEMPLATE_DATA[templateKey];
+            if (!data) return;
+
+            elements.inputTitle.value = data.title;
+            elements.inputTagline.value = data.tagline;
+            elements.inputDescription.value = data.description;
+
+            // Badges
+            elements.badgeLicense.checked = data.badges.includes("license");
+            elements.badgeVersion.checked = data.badges.includes("version");
+            elements.badgeIssues.checked = data.badges.includes("issues");
+            elements.badgePrs.checked = data.badges.includes("prs");
+
+            elements.inputFeatures.value = data.features;
+            elements.inputTechstack.value = data.techstack;
+            elements.inputPrerequisites.value = data.prerequisites;
+            elements.inputInstallSteps.value = data.installSteps;
+            elements.inputUsage.value = data.usage;
+            elements.inputContributing.value = data.contributing;
+            elements.selectLicense.value = data.license;
+            elements.inputLicenseHolder.value = data.licenseHolder;
+            elements.inputAuthor.value = data.author;
+            elements.inputGithub.value = data.github;
+            elements.inputEmail.value = data.email;
+            elements.inputTwitter.value = data.twitter;
+
+            // Enable all checkboxes by default on template load
+            const checkboxes = [
+                elements.chkHeader, elements.chkBadges, elements.chkFeatures,
+                elements.chkTechstack, elements.chkInstallation, elements.chkUsage,
+                elements.chkContributing, elements.chkLicense, elements.chkContact
+            ];
+            checkboxes.forEach(chk => chk.checked = true);
+
+            updateMarkdown();
+        }
+
+        // Set up event listeners for instant previews
+        function setupLivePreview() {
+            const textInputs = [
+                elements.inputTitle, elements.inputTagline, elements.inputDescription,
+                elements.inputFeatures, elements.inputTechstack, elements.inputPrerequisites,
+                elements.inputInstallSteps, elements.inputUsage, elements.inputContributing,
+                elements.inputLicenseHolder, elements.inputAuthor, elements.inputGithub,
+                elements.inputEmail, elements.inputTwitter
+            ];
+
+            const checkboxes = [
+                elements.badgeLicense, elements.badgeVersion, elements.badgeIssues, elements.badgePrs,
+                elements.chkHeader, elements.chkBadges, elements.chkFeatures, elements.chkTechstack,
+                elements.chkInstallation, elements.chkUsage, elements.chkContributing,
+                elements.chkLicense, elements.chkContact
+            ];
+
+            textInputs.forEach(input => input.addEventListener('input', updateMarkdown));
+            checkboxes.forEach(chk => chk.addEventListener('change', updateMarkdown));
+            elements.selectLicense.addEventListener('change', updateMarkdown);
+        }
+
+        // Setup Template Selector buttons
+        function setupTemplateButtons() {
+            elements.templateBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    elements.templateBtns.forEach(b => b.classList.remove('active', 'border-2', 'border-indigo-600', 'bg-indigo-50/50', 'text-indigo-700'));
+                    elements.templateBtns.forEach(b => b.classList.add('border-slate-200', 'text-slate-600'));
+
+                    btn.classList.add('active', 'border-2', 'border-indigo-600', 'bg-indigo-50/50', 'text-indigo-700');
+                    btn.classList.remove('border-slate-200', 'text-slate-600');
+
+                    loadTemplate(btn.dataset.template);
+                });
+            });
+        }
+
+        // Set up tabs switching
+        function setupTabs() {
+            elements.tabBtnPreview.addEventListener('click', () => {
+                elements.tabBtnPreview.classList.add('active', 'bg-white', 'shadow-sm', 'text-slate-700');
+                elements.tabBtnRaw.classList.remove('active', 'bg-white', 'shadow-sm', 'text-slate-700');
+                elements.tabBtnRaw.classList.add('text-slate-600');
+
+                elements.screenPreview.classList.remove('hidden');
+                elements.screenRaw.classList.add('hidden');
+            });
+
+            elements.tabBtnRaw.addEventListener('click', () => {
+                elements.tabBtnRaw.classList.add('active', 'bg-white', 'shadow-sm', 'text-slate-700');
+                elements.tabBtnPreview.classList.remove('active', 'bg-white', 'shadow-sm', 'text-slate-700');
+                elements.tabBtnPreview.classList.add('text-slate-600');
+
+                elements.screenRaw.classList.remove('hidden');
+                elements.screenPreview.classList.add('hidden');
+            });
+        }
+
+        // Copy markdown function
+        function setupCopyAndDownload() {
+            elements.btnCopy.addEventListener('click', () => {
+                const md = elements.outputMarkdown.value;
+                navigator.clipboard.writeText(md).then(() => {
+                    elements.toastMessage.classList.remove('opacity-0', 'translate-y-2');
+                    elements.toastMessage.classList.add('opacity-100', 'translate-y-0');
+
+                    setTimeout(() => {
+                        elements.toastMessage.classList.remove('opacity-100', 'translate-y-0');
+                        elements.toastMessage.classList.add('opacity-0', 'translate-y-2');
+                    }, 2500);
+                });
+            });
+
+            elements.btnDownload.addEventListener('click', () => {
+                const md = elements.outputMarkdown.value;
+                const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", "README.md");
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+
+        // Reset all fields
+        elements.btnReset.addEventListener('click', () => {
+            const textInputs = [
+                elements.inputTitle, elements.inputTagline, elements.inputDescription,
+                elements.inputFeatures, elements.inputTechstack, elements.inputPrerequisites,
+                elements.inputInstallSteps, elements.inputUsage, elements.inputContributing,
+                elements.inputLicenseHolder, elements.inputAuthor, elements.inputGithub,
+                elements.inputEmail, elements.inputTwitter
+            ];
+            textInputs.forEach(i => i.value = "");
+
+            // Reset to first standard template defaults
+            loadTemplate('standard');
+        });
+
+        // Initialize App
+        function init() {
+            renderTechButtons();
+            setupAccordion();
+            setupLivePreview();
+            setupTemplateButtons();
+            setupTabs();
+            setupCopyAndDownload();
+
+            // Load Standard template by default
+            loadTemplate('standard');
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
